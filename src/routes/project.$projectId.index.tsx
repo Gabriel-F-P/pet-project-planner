@@ -399,38 +399,121 @@ function PlaceSelector({
   selected: string[];
   onToggle: (id: string) => void;
 }) {
+  const [openPop, setOpenPop] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const selectedPlaces = selected
+    .map((id) => places.find((p) => p.id === id))
+    .filter((p): p is Place => Boolean(p));
+
+  const filtered = places.filter((p) =>
+    p.label.toLowerCase().includes(query.toLowerCase()),
+  );
+
   return (
     <div className="p-3 space-y-2">
-      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        {label}
-        <span className="ml-2 text-foreground tabular-nums">
-          [{selected.length.toString().padStart(2, "0")}]
-        </span>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {places.length === 0 && (
-          <span className="font-mono text-[10px] text-muted-foreground italic">
-            Sem places disponíveis
+      <div className="flex items-center justify-between">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          {label}
+          <span className="ml-2 text-foreground tabular-nums">
+            [{selected.length.toString().padStart(2, "0")}]
           </span>
-        )}
-        {places.map((p) => {
-          const active = selected.includes(p.id);
-          return (
+        </div>
+        <Popover open={openPop} onOpenChange={setOpenPop}>
+          <PopoverTrigger asChild>
             <button
+              disabled={places.length === 0}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm border border-border bg-background hover:border-foreground/40 hover:text-foreground font-mono text-[10px] uppercase tracking-widest text-muted-foreground disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Plus className="size-2.5" strokeWidth={2.5} />
+              Add
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            sideOffset={4}
+            className="w-60 p-0 rounded-sm milled-border bg-card"
+          >
+            <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border">
+              <Search className="size-3 text-muted-foreground shrink-0" strokeWidth={2.5} />
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar place..."
+                className="flex-1 bg-transparent outline-none font-mono text-xs placeholder:text-muted-foreground/60"
+              />
+            </div>
+            <div className="max-h-56 overflow-y-auto py-1">
+              {filtered.length === 0 ? (
+                <div className="px-3 py-4 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Nenhum place
+                </div>
+              ) : (
+                filtered.map((p) => {
+                  const active = selected.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => onToggle(p.id)}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-surface/60 group"
+                    >
+                      <div
+                        className={
+                          "size-3.5 rounded-sm border flex items-center justify-center shrink-0 " +
+                          (active
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-border bg-background")
+                        }
+                      >
+                        {active && <Check className="size-2.5" strokeWidth={3} />}
+                      </div>
+                      <span className="font-mono text-xs flex-1 truncate">{p.label}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            {selected.length > 0 && (
+              <div className="px-2.5 py-1.5 border-t border-border flex items-center justify-between">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground tabular-nums">
+                  {selected.length} sel.
+                </span>
+                <button
+                  onClick={() => selected.forEach((id) => onToggle(id))}
+                  className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-destructive"
+                >
+                  Limpar
+                </button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {selectedPlaces.length === 0 ? (
+        <div className="font-mono text-[10px] text-muted-foreground/70 italic py-1">
+          {places.length === 0 ? "Sem places disponíveis" : "Nenhum selecionado"}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          {selectedPlaces.map((p) => (
+            <span
               key={p.id}
-              onClick={() => onToggle(p.id)}
-              className={
-                "px-2 py-1 rounded-sm font-mono text-[10px] uppercase tracking-wider border transition-colors " +
-                (active
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30")
-              }
+              className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-sm bg-primary/10 border border-primary/30 text-primary font-mono text-[10px] uppercase tracking-wider"
             >
               {p.label}
-            </button>
-          );
-        })}
-      </div>
+              <button
+                onClick={() => onToggle(p.id)}
+                className="size-3.5 inline-flex items-center justify-center rounded-sm hover:bg-primary/20"
+                aria-label={`Remover ${p.label}`}
+              >
+                <X className="size-2.5" strokeWidth={2.5} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
