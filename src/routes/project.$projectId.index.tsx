@@ -176,68 +176,89 @@ function ParametersTab() {
         {/* Section: Initial Markings */}
         <Section
           title="M0 — Marcações iniciais"
-          subtitle={`[1 × ${params.places.length}]`}
+          subtitle={`${Object.keys(params.initialMarkings).length} / ${params.places.length}`}
           open={open.markings}
           onToggle={() => toggle("markings")}
+          action={
+            <MarkingAdder
+              places={params.places}
+              activeIds={Object.keys(params.initialMarkings)}
+              onAdd={activateMark}
+              onRemove={removeMark}
+            />
+          }
         >
           {params.places.length === 0 ? (
             <EmptyHint label="Adicione Places para configurar marcações" />
+          ) : Object.keys(params.initialMarkings).length === 0 ? (
+            <EmptyHint label='Use "+ Place" para escolher onde colocar tokens' />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {params.places.map((p) => {
-                const value = params.initialMarkings[p.id] ?? 0;
-                return (
-                  <div
-                    key={p.id}
-                    className={
-                      "rounded-sm border bg-card p-2.5 transition-colors " +
-                      (value > 0
-                        ? "border-gauge ring-1 ring-gauge/20"
-                        : "border-border")
-                    }
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={
-                          "font-mono text-[10px] uppercase tracking-widest " +
-                          (value > 0 ? "text-gauge" : "text-muted-foreground")
-                        }
-                      >
-                        {p.label}
-                      </span>
-                      <Circle
-                        className={
-                          "size-2 " +
-                          (value > 0
-                            ? "fill-gauge text-gauge"
-                            : "text-muted-foreground/40")
-                        }
-                      />
+              {params.places
+                .filter((p) => params.initialMarkings[p.id] !== undefined)
+                .map((p) => {
+                  const value = params.initialMarkings[p.id] ?? 0;
+                  return (
+                    <div
+                      key={p.id}
+                      className={
+                        "group rounded-sm border bg-card p-2.5 transition-colors relative " +
+                        (value > 0
+                          ? "border-gauge ring-1 ring-gauge/20"
+                          : "border-border")
+                      }
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={
+                            "font-mono text-[10px] uppercase tracking-widest truncate " +
+                            (value > 0 ? "text-gauge" : "text-muted-foreground")
+                          }
+                        >
+                          {p.label}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Circle
+                            className={
+                              "size-2 " +
+                              (value > 0
+                                ? "fill-gauge text-gauge"
+                                : "text-muted-foreground/40")
+                            }
+                          />
+                          <button
+                            onClick={() => removeMark(p.id)}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                            aria-label={`Remover marcação de ${p.label}`}
+                          >
+                            <X className="size-3" strokeWidth={2.5} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-1">
+                        <button
+                          onClick={() => setMark(p.id, value - 1)}
+                          className="size-6 rounded-sm border border-border bg-background hover:bg-surface font-mono text-xs font-bold"
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min={0}
+                          value={value}
+                          onChange={(e) => setMark(p.id, parseInt(e.target.value, 10))}
+                          className="flex-1 text-center font-mono text-sm font-medium tabular-nums bg-background border border-input rounded-sm py-1 focus:outline-none focus:ring-1 focus:ring-ring"
+                        />
+                        <button
+                          onClick={() => setMark(p.id, value + 1)}
+                          className="size-6 rounded-sm border border-border bg-background hover:bg-surface font-mono text-xs font-bold"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                    <div className="mt-2 flex items-center gap-1">
-                      <button
-                        onClick={() => setMark(p.id, value - 1)}
-                        className="size-6 rounded-sm border border-border bg-background hover:bg-surface font-mono text-xs font-bold"
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        min={0}
-                        value={value}
-                        onChange={(e) => setMark(p.id, parseInt(e.target.value, 10))}
-                        className="flex-1 text-center font-mono text-sm font-medium tabular-nums bg-background border border-input rounded-sm py-1 focus:outline-none focus:ring-1 focus:ring-ring"
-                      />
-                      <button
-                        onClick={() => setMark(p.id, value + 1)}
-                        className="size-6 rounded-sm border border-border bg-background hover:bg-surface font-mono text-xs font-bold"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
         </Section>
