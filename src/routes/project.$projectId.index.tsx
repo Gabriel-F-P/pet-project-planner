@@ -574,3 +574,100 @@ function Indicator({ ok, label }: { ok: boolean; label: string }) {
     </div>
   );
 }
+
+function MarkingAdder({
+  places,
+  activeIds,
+  onAdd,
+  onRemove,
+}: {
+  places: Place[];
+  activeIds: string[];
+  onAdd: (id: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [openPop, setOpenPop] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filtered = places.filter((p) =>
+    p.label.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  const toggle = (id: string) => {
+    if (activeIds.includes(id)) onRemove(id);
+    else onAdd(id);
+  };
+
+  return (
+    <Popover open={openPop} onOpenChange={setOpenPop}>
+      <PopoverTrigger asChild>
+        <button
+          disabled={places.length === 0}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-primary text-primary-foreground font-mono text-[10px] font-bold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Plus className="size-3" strokeWidth={2.5} />
+          Place
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={4}
+        className="w-60 p-0 rounded-sm milled-border bg-card"
+      >
+        <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border">
+          <Search className="size-3 text-muted-foreground shrink-0" strokeWidth={2.5} />
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar place..."
+            className="flex-1 bg-transparent outline-none font-mono text-xs placeholder:text-muted-foreground/60"
+          />
+        </div>
+        <div className="max-h-56 overflow-y-auto py-1">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-4 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Nenhum place
+            </div>
+          ) : (
+            filtered.map((p) => {
+              const active = activeIds.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => toggle(p.id)}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-surface/60"
+                >
+                  <div
+                    className={
+                      "size-3.5 rounded-sm border flex items-center justify-center shrink-0 " +
+                      (active
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : "border-border bg-background")
+                    }
+                  >
+                    {active && <Check className="size-2.5" strokeWidth={3} />}
+                  </div>
+                  <span className="font-mono text-xs flex-1 truncate">{p.label}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+        {activeIds.length > 0 && (
+          <div className="px-2.5 py-1.5 border-t border-border flex items-center justify-between">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground tabular-nums">
+              {activeIds.length} marc.
+            </span>
+            <button
+              onClick={() => activeIds.forEach((id) => onRemove(id))}
+              className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-destructive"
+            >
+              Limpar
+            </button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
