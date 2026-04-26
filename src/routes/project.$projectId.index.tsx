@@ -85,6 +85,17 @@ function ParametersTab() {
       ...params,
       initialMarkings: { ...params.initialMarkings, [placeId]: Math.max(0, value || 0) },
     });
+  const removeMark = (placeId: string) => {
+    const { [placeId]: _removed, ...rest } = params.initialMarkings;
+    update({ ...params, initialMarkings: rest });
+  };
+  const activateMark = (placeId: string) => {
+    if (params.initialMarkings[placeId] !== undefined) return;
+    update({
+      ...params,
+      initialMarkings: { ...params.initialMarkings, [placeId]: 1 },
+    });
+  };
 
   return (
     <div className="p-8 flex justify-center">
@@ -165,68 +176,89 @@ function ParametersTab() {
         {/* Section: Initial Markings */}
         <Section
           title="M0 — Marcações iniciais"
-          subtitle={`[1 × ${params.places.length}]`}
+          subtitle={`${Object.keys(params.initialMarkings).length} / ${params.places.length}`}
           open={open.markings}
           onToggle={() => toggle("markings")}
+          action={
+            <MarkingAdder
+              places={params.places}
+              activeIds={Object.keys(params.initialMarkings)}
+              onAdd={activateMark}
+              onRemove={removeMark}
+            />
+          }
         >
           {params.places.length === 0 ? (
             <EmptyHint label="Adicione Places para configurar marcações" />
+          ) : Object.keys(params.initialMarkings).length === 0 ? (
+            <EmptyHint label='Use "+ Place" para escolher onde colocar tokens' />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {params.places.map((p) => {
-                const value = params.initialMarkings[p.id] ?? 0;
-                return (
-                  <div
-                    key={p.id}
-                    className={
-                      "rounded-sm border bg-card p-2.5 transition-colors " +
-                      (value > 0
-                        ? "border-gauge ring-1 ring-gauge/20"
-                        : "border-border")
-                    }
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={
-                          "font-mono text-[10px] uppercase tracking-widest " +
-                          (value > 0 ? "text-gauge" : "text-muted-foreground")
-                        }
-                      >
-                        {p.label}
-                      </span>
-                      <Circle
-                        className={
-                          "size-2 " +
-                          (value > 0
-                            ? "fill-gauge text-gauge"
-                            : "text-muted-foreground/40")
-                        }
-                      />
+              {params.places
+                .filter((p) => params.initialMarkings[p.id] !== undefined)
+                .map((p) => {
+                  const value = params.initialMarkings[p.id] ?? 0;
+                  return (
+                    <div
+                      key={p.id}
+                      className={
+                        "group rounded-sm border bg-card p-2.5 transition-colors relative " +
+                        (value > 0
+                          ? "border-gauge ring-1 ring-gauge/20"
+                          : "border-border")
+                      }
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={
+                            "font-mono text-[10px] uppercase tracking-widest truncate " +
+                            (value > 0 ? "text-gauge" : "text-muted-foreground")
+                          }
+                        >
+                          {p.label}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Circle
+                            className={
+                              "size-2 " +
+                              (value > 0
+                                ? "fill-gauge text-gauge"
+                                : "text-muted-foreground/40")
+                            }
+                          />
+                          <button
+                            onClick={() => removeMark(p.id)}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                            aria-label={`Remover marcação de ${p.label}`}
+                          >
+                            <X className="size-3" strokeWidth={2.5} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-1">
+                        <button
+                          onClick={() => setMark(p.id, value - 1)}
+                          className="size-6 rounded-sm border border-border bg-background hover:bg-surface font-mono text-xs font-bold"
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min={0}
+                          value={value}
+                          onChange={(e) => setMark(p.id, parseInt(e.target.value, 10))}
+                          className="flex-1 text-center font-mono text-sm font-medium tabular-nums bg-background border border-input rounded-sm py-1 focus:outline-none focus:ring-1 focus:ring-ring"
+                        />
+                        <button
+                          onClick={() => setMark(p.id, value + 1)}
+                          className="size-6 rounded-sm border border-border bg-background hover:bg-surface font-mono text-xs font-bold"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                    <div className="mt-2 flex items-center gap-1">
-                      <button
-                        onClick={() => setMark(p.id, value - 1)}
-                        className="size-6 rounded-sm border border-border bg-background hover:bg-surface font-mono text-xs font-bold"
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        min={0}
-                        value={value}
-                        onChange={(e) => setMark(p.id, parseInt(e.target.value, 10))}
-                        className="flex-1 text-center font-mono text-sm font-medium tabular-nums bg-background border border-input rounded-sm py-1 focus:outline-none focus:ring-1 focus:ring-ring"
-                      />
-                      <button
-                        onClick={() => setMark(p.id, value + 1)}
-                        className="size-6 rounded-sm border border-border bg-background hover:bg-surface font-mono text-xs font-bold"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
         </Section>
@@ -540,5 +572,102 @@ function Indicator({ ok, label }: { ok: boolean; label: string }) {
         {label}
       </span>
     </div>
+  );
+}
+
+function MarkingAdder({
+  places,
+  activeIds,
+  onAdd,
+  onRemove,
+}: {
+  places: Place[];
+  activeIds: string[];
+  onAdd: (id: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [openPop, setOpenPop] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filtered = places.filter((p) =>
+    p.label.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  const toggle = (id: string) => {
+    if (activeIds.includes(id)) onRemove(id);
+    else onAdd(id);
+  };
+
+  return (
+    <Popover open={openPop} onOpenChange={setOpenPop}>
+      <PopoverTrigger asChild>
+        <button
+          disabled={places.length === 0}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-primary text-primary-foreground font-mono text-[10px] font-bold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Plus className="size-3" strokeWidth={2.5} />
+          Place
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={4}
+        className="w-60 p-0 rounded-sm milled-border bg-card"
+      >
+        <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border">
+          <Search className="size-3 text-muted-foreground shrink-0" strokeWidth={2.5} />
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar place..."
+            className="flex-1 bg-transparent outline-none font-mono text-xs placeholder:text-muted-foreground/60"
+          />
+        </div>
+        <div className="max-h-56 overflow-y-auto py-1">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-4 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Nenhum place
+            </div>
+          ) : (
+            filtered.map((p) => {
+              const active = activeIds.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => toggle(p.id)}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-surface/60"
+                >
+                  <div
+                    className={
+                      "size-3.5 rounded-sm border flex items-center justify-center shrink-0 " +
+                      (active
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : "border-border bg-background")
+                    }
+                  >
+                    {active && <Check className="size-2.5" strokeWidth={3} />}
+                  </div>
+                  <span className="font-mono text-xs flex-1 truncate">{p.label}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+        {activeIds.length > 0 && (
+          <div className="px-2.5 py-1.5 border-t border-border flex items-center justify-between">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground tabular-nums">
+              {activeIds.length} marc.
+            </span>
+            <button
+              onClick={() => activeIds.forEach((id) => onRemove(id))}
+              className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-destructive"
+            >
+              Limpar
+            </button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
