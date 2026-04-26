@@ -1,8 +1,9 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useProject, updateParameters, newPlaceId, newTransitionId } from "@/lib/projects-store";
 import type { Place, Transition, ProjectParameters } from "@/lib/projects-store";
-import { ChevronDown, Plus, Trash2, Circle } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Circle, Search, X, Check } from "lucide-react";
 import { useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export const Route = createFileRoute("/project/$projectId/")({
   component: ParametersTab,
