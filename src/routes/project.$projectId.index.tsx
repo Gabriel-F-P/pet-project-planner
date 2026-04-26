@@ -85,6 +85,17 @@ function ParametersTab() {
       ...params,
       initialMarkings: { ...params.initialMarkings, [placeId]: Math.max(0, value || 0) },
     });
+  const removeMark = (placeId: string) => {
+    const { [placeId]: _removed, ...rest } = params.initialMarkings;
+    update({ ...params, initialMarkings: rest });
+  };
+  const activateMark = (placeId: string) => {
+    if (params.initialMarkings[placeId] !== undefined) return;
+    update({
+      ...params,
+      initialMarkings: { ...params.initialMarkings, [placeId]: 1 },
+    });
+  };
 
   return (
     <div className="p-8 flex justify-center">
