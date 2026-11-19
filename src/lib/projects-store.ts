@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
+import exampleXml from "../../exemplos/estacao-furacao.pnml?raw";
+import { parsePnml, netToParameters } from "./petri";
 
 export type Place = {
   id: string;
@@ -39,11 +41,39 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+/** Projeto de exemplo, criado na primeira abertura do app (armazenamento vazio). */
+function exampleProject(): Project {
+  const now = Date.now();
+  const net = parsePnml(exampleXml);
+  const parameters = netToParameters(net);
+  const guards: Record<string, string> = {
+    Carregar: "Sensor_Presenca",
+    Iniciar_Furo: "Sensor_Posicao",
+    Concluir_Furo: "Fim_Curso_Furadeira",
+    Descarregar: "Botao_Descarga",
+  };
+  parameters.transitions.forEach((t) => (t.guard = guards[t.name] ?? ""));
+  return {
+    id: "exemplo-furacao",
+    name: "Estação de Furação (exemplo)",
+    description: "Esteira + furadeira com recurso compartilhado e arco inibidor",
+    createdAt: now,
+    updatedAt: now,
+    parameters,
+    npmlFileName: "estacao-furacao.pnml",
+    npmlContent: exampleXml,
+  };
+}
+
 function read(): Project[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      const seeded = [exampleProject()];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+      return seeded;
+    }
     return JSON.parse(raw) as Project[];
   } catch {
     return [];
