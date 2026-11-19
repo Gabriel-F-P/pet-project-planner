@@ -1,6 +1,7 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useProject } from "@/lib/projects-store";
-import { Copy, FileWarning, CheckCircle2, Info, AlertTriangle } from "lucide-react";
+import { buildReport, type LogEntry, type LogLevel } from "@/lib/petri";
+import { Copy, FileWarning, CheckCircle2, Info, AlertTriangle, XCircle } from "lucide-react";
 import { useMemo } from "react";
 import { toast } from "sonner";
 
@@ -8,68 +9,17 @@ export const Route = createFileRoute("/project/$projectId/analysis")({
   component: AnalysisTab,
 });
 
-type LogLevel = "info" | "warn" | "ok";
-type LogEntry = { level: LogLevel; code: string; message: string };
-
 function AnalysisTab() {
   const { projectId } = useParams({ from: "/project/$projectId/analysis" });
   const project = useProject(projectId);
 
-  const report = useMemo<LogEntry[] | null>(() => {
-    if (!project?.npmlContent) return null;
-    const params = project.parameters;
-    const log: LogEntry[] = [
-      { level: "info", code: "INIT", message: `Source: ${project.npmlFileName ?? "unknown.npml"} (${(project.npmlContent.length / 1024).toFixed(2)} KB)` },
-      { level: "info", code: "PARSE", message: "Estrutura NPML analisada com sucesso." },
-      { level: "ok", code: "VALIDATE", message: `${params.places.length} Places identificados.` },
-      { level: "ok", code: "VALIDATE", message: `${params.transitions.length} Transições identificadas.` },
-    ];
-
-    const orphanPlaces = params.places.filter(
-      (p) =>
-        !params.transitions.some(
-          (t) => t.inputs.includes(p.id) || t.outputs.includes(p.id)
-        )
-    );
-    if (orphanPlaces.length > 0) {
-      log.push({
-        level: "warn",
-        code: "ADJUST",
-        message: `${orphanPlaces.length} Place(s) sem conexões detectados — mantidos como estados isolados.`,
-      });
-    }
-
-    const emptyTrans = params.transitions.filter(
-      (t) => t.inputs.length === 0 || t.outputs.length === 0
-    );
-    if (emptyTrans.length > 0) {
-      log.push({
-        level: "warn",
-        code: "ADJUST",
-        message: `${emptyTrans.length} Transição(ões) sem entrada ou saída — convertida(s) com fallback.`,
-      });
-    }
-
-    const totalTokens = Object.values(params.initialMarkings).reduce((a, b) => a + b, 0);
-    log.push({
-      level: "info",
-      code: "M0",
-      message: `Marcação inicial total: ${totalTokens} tokens distribuídos.`,
-    });
-
-    log.push({
-      level: "ok",
-      code: "OPTIMIZE",
-      message: "Reduções aplicadas: simplificação booleana e merge de transições redundantes.",
-    });
-    log.push({
-      level: "ok",
-      code: "DONE",
-      message: "Conversão para IEC 61131-3 concluída.",
-    });
-
-    return log;
-  }, [project]);
+  const report = useMemo<LogEntry[] | null>(
+    () =>
+      project?.npmlContent
+        ? buildReport(project.parameters, project.npmlFileName, project.npmlContent)
+        : null,
+    [project],
+  );
 
   if (!project) return null;
 
@@ -87,7 +37,7 @@ function AnalysisTab() {
             <FileWarning className="size-8 mx-auto text-muted-foreground" />
             <h3 className="mt-3 font-semibold">Nenhuma conversão realizada</h3>
             <p className="mt-1 text-sm text-muted-foreground max-w-sm mx-auto">
-              Carregue um arquivo .npml na etapa anterior e execute a conversão.
+              Carregue um arquivo .pnml na etapa anterior e execute a conversão.
             </p>
             <Link
               to="/project/$projectId/input"
@@ -110,6 +60,7 @@ function AnalysisTab() {
     ok: report.filter((l) => l.level === "ok").length,
     warn: report.filter((l) => l.level === "warn").length,
     info: report.filter((l) => l.level === "info").length,
+    error: report.filter((l) => l.level === "error").length,
   };
 
   const copy = () => {
@@ -131,7 +82,8 @@ function AnalysisTab() {
         </div>
 
         {/* Summary stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatBox label="Erros" value={counts.error} accent="warning" />
           <StatBox label="OK" value={counts.ok} accent="success" />
           <StatBox label="Avisos" value={counts.warn} accent="warning" />
           <StatBox label="Info" value={counts.info} accent="muted" />
@@ -187,9 +139,17 @@ function AnalysisTab() {
 
         <div className="pt-4 flex items-center justify-between border-t border-border">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-3.5 text-success" />
+            {counts.error ? (
+              <AlertTriangle className="size-3.5 text-destructive" />
+            ) : (
+              <CheckCircle2 className="size-3.5 text-success" />
+            )}
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Conversão validada
+              {counts.error
+                ? "Há erros a corrigir"
+                : counts.warn
+                  ? "Conversão concluída com avisos"
+                  : "Conversão validada"}
             </span>
           </div>
           <Link
@@ -197,7 +157,7 @@ function AnalysisTab() {
             params={{ projectId }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-sm bg-gauge text-gauge-foreground font-mono text-[11px] font-bold uppercase tracking-widest hover:opacity-90"
           >
-            Ver código IEC →
+            Ver código gerado →
           </Link>
         </div>
       </div>
@@ -240,6 +200,11 @@ function LevelBadge({ level }: { level: LogLevel }) {
       label: "WARN",
     },
     info: { color: "bg-muted text-muted-foreground border-border", icon: Info, label: "INFO" },
+    error: {
+      color: "bg-destructive/10 text-destructive border-destructive/40",
+      icon: XCircle,
+      label: "ERRO",
+    },
   }[level];
   const Icon = config.icon;
   return (

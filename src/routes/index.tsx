@@ -155,7 +155,7 @@ function ProjectsIndex() {
             <h3 className="mt-4 text-base font-semibold">Nenhum projeto registrado</h3>
             <p className="mt-1 text-sm text-muted-foreground max-w-sm mx-auto">
               Comece criando uma nova assembly para configurar parâmetros e converter arquivos
-              .npml.
+              .pnml.
             </p>
             <button
               onClick={() => setCreating(true)}

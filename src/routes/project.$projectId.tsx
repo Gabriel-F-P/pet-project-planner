@@ -190,7 +190,7 @@ function ProjectLayout() {
           <div className="flex items-center gap-4 min-w-0">
             <h1 className="font-mono text-sm font-semibold uppercase tracking-tight truncate">
               {project.name}
-              <span className="text-muted-foreground">.npml</span>
+              <span className="text-muted-foreground">.pnml</span>
             </h1>
             <div className="h-4 w-px bg-border" />
             <div className="flex items-center gap-2">

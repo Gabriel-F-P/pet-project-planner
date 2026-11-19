@@ -1,7 +1,8 @@
 import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router";
-import { useProject, updateProject } from "@/lib/projects-store";
+import { useProject, updateProject, updateParameters } from "@/lib/projects-store";
+import { parsePnml, netToParameters, type PnmlNet } from "@/lib/petri";
 import { Upload, FileCode, X, ArrowRight } from "lucide-react";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/project/$projectId/input")({
@@ -15,17 +16,35 @@ function InputTab() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [converting, setConverting] = useState(false);
+  const parsed = useMemo<{ net?: PnmlNet; error?: string }>(() => {
+    if (!project?.npmlContent) return {};
+    try {
+      return { net: parsePnml(project.npmlContent) };
+    } catch (e) {
+      return { error: (e as Error).message };
+    }
+  }, [project?.npmlContent]);
 
   if (!project) return null;
 
   const handleFile = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith(".npml")) {
-      toast.error("Arquivo deve ter extensão .npml");
+    const lower = file.name.toLowerCase();
+    if (![".pnml", ".npml", ".xml"].some((ext) => lower.endsWith(ext))) {
+      toast.error("Use um arquivo .pnml ou o .xml salvo pelo PIPE");
       return;
     }
-    const content = await file.text();
+    // o PIPE salva em ISO-8859-1; respeita a codificação declarada no XML
+    const buffer = await file.arrayBuffer();
+    const head = new TextDecoder("ascii").decode(buffer.slice(0, 120));
+    const encoding = /encoding=["']ISO-8859-1["']/i.test(head) ? "iso-8859-1" : "utf-8";
+    const content = new TextDecoder(encoding).decode(buffer);
     updateProject(projectId, { npmlFileName: file.name, npmlContent: content });
-    toast.success(`Arquivo carregado: ${file.name}`);
+    try {
+      const net = parsePnml(content);
+      toast.success(`Arquivo lido: ${net.places.length} lugares, ${net.transitions.length} transições`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
 
   const clearFile = () => {
@@ -35,9 +54,14 @@ function InputTab() {
 
   const handleConvert = () => {
     if (!project.npmlContent) {
-      toast.error("Carregue um arquivo .npml antes de converter");
+      toast.error("Carregue um arquivo .pnml antes de converter");
       return;
     }
+    if (!parsed.net) {
+      toast.error(parsed.error ?? "Não foi possível ler o arquivo");
+      return;
+    }
+    updateParameters(projectId, netToParameters(parsed.net, project.parameters));
     setConverting(true);
     setTimeout(() => {
       setConverting(false);
@@ -53,7 +77,7 @@ function InputTab() {
           <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
             Etapa 02 / Source Input
           </div>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">Carregar arquivo .npml</h2>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight">Carregar arquivo .pnml</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Forneça o arquivo de descrição da rede de Petri para iniciar a conversão.
           </p>
@@ -114,7 +138,7 @@ function InputTab() {
                 <Upload className="size-5 text-muted-foreground" />
               </div>
               <div>
-                <div className="text-sm font-medium">Arraste o arquivo .npml aqui</div>
+                <div className="text-sm font-medium">Arraste o arquivo .pnml (ou o .xml do PIPE) aqui</div>
                 <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-2">
                   ou clique para selecionar
                 </div>
@@ -131,7 +155,7 @@ function InputTab() {
           <input
             ref={inputRef}
             type="file"
-            accept=".npml,.xml"
+            accept=".pnml,.npml,.xml"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -139,6 +163,45 @@ function InputTab() {
             }}
           />
         </div>
+
+        {/* Resumo da leitura */}
+        {project.npmlContent && (
+          <div
+            className={
+              "rounded-sm border px-4 py-3 font-mono text-[11px] " +
+              (parsed.net
+                ? "border-success/40 bg-success/5"
+                : "border-destructive/40 bg-destructive/5 text-destructive")
+            }
+          >
+            {parsed.net ? (
+              <>
+                <div className="font-bold uppercase tracking-widest text-[10px]">
+                  Leitura do arquivo · formato {parsed.net.format}
+                </div>
+                <div className="mt-1">
+                  {parsed.net.places.length} lugares · {parsed.net.transitions.length} transições ·{" "}
+                  {parsed.net.arcs.length} arcos · marcação inicial:{" "}
+                  {parsed.net.places
+                    .filter((p) => p.marking > 0)
+                    .map((p) => `${p.name}=${p.marking}`)
+                    .join(", ") || "vazia"}
+                </div>
+                {parsed.net.warnings.map((w, i) => (
+                  <div key={i} className="mt-1 text-warning">
+                    ⚠ {w}
+                  </div>
+                ))}
+                <div className="mt-1 text-muted-foreground">
+                  Ao converter, os lugares, transições, arcos e a marcação inicial do arquivo substituem os
+                  parâmetros; as condições já digitadas são mantidas.
+                </div>
+              </>
+            ) : (
+              <>Erro de leitura: {parsed.error}</>
+            )}
+          </div>
+        )}
 
         {/* Preview */}
         {project.npmlContent && (

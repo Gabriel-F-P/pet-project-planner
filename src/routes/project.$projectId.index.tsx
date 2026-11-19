@@ -402,6 +402,21 @@ function TransitionRow({
           <Trash2 className="size-3.5" />
         </button>
       </div>
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+        <label
+          htmlFor={`guard-${transition.id}`}
+          className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground shrink-0"
+        >
+          Condição
+        </label>
+        <input
+          id={`guard-${transition.id}`}
+          value={transition.guard ?? ""}
+          onChange={(e) => onChange({ guard: e.target.value })}
+          placeholder="Sensor ou evento em ST (ex.: Sensor_B0 ou Inspecao_OK AND NOT Inspecao_NG)"
+          className="flex-1 min-w-0 font-mono text-xs bg-background border border-input rounded-sm px-2 py-1 outline-none focus:border-foreground/40"
+        />
+      </div>
       <div className="grid grid-cols-2 divide-x divide-border">
         <PlaceSelector
           label="Entrada (•T)"

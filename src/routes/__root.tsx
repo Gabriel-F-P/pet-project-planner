@@ -37,7 +37,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Ambiente técnico para conversão de redes de Petri (.npml) em código estruturado IEC 61131-3.",
+          "Ambiente técnico para conversão de redes de Petri (.pnml) em código estruturado IEC 61131-3.",
       },
       { name: "author", content: "Petri-IEC" },
       { property: "og:title", content: "Petri-IEC — Conversor para IEC 61131-3" },

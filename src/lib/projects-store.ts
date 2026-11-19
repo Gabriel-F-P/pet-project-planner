@@ -10,6 +10,10 @@ export type Transition = {
   name: string;
   inputs: string[]; // place ids
   outputs: string[]; // place ids
+  inputWeights?: Record<string, number>; // place id -> peso do arco (padrão 1)
+  outputWeights?: Record<string, number>;
+  inhibitors?: string[]; // lugares ligados por arco inibidor
+  guard?: string; // condição externa em Texto Estruturado (ex.: "Sensor_B0")
 };
 
 export type ProjectParameters = {
