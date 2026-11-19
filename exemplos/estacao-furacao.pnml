@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Exemplo no formato do PIPE: estação de furação com esteira.
+     Mostra lugares, transições, marcação inicial, recurso compartilhado
+     (Furadeira_Livre) e um arco inibidor (Peca_Furada -o Carregar). -->
+<pnml>
+  <net id="Net-One" type="P/T net">
+    <place id="P0">
+      <graphics><position x="60.0" y="150.0"/></graphics>
+      <name><value>Fila_Pecas</value></name>
+      <initialMarking><value>Default,2</value></initialMarking>
+    </place>
+    <place id="P1">
+      <graphics><position x="60.0" y="40.0"/></graphics>
+      <name><value>Esteira_Livre</value></name>
+      <initialMarking><value>Default,1</value></initialMarking>
+    </place>
+    <place id="P2">
+      <graphics><position x="270.0" y="150.0"/></graphics>
+      <name><value>Peca_Na_Esteira</value></name>
+      <initialMarking><value>Default,0</value></initialMarking>
+    </place>
+    <place id="P3">
+      <graphics><position x="480.0" y="40.0"/></graphics>
+      <name><value>Furadeira_Livre</value></name>
+      <initialMarking><value>Default,1</value></initialMarking>
+    </place>
+    <place id="P4">
+      <graphics><position x="480.0" y="150.0"/></graphics>
+      <name><value>Furando</value></name>
+      <initialMarking><value>Default,0</value></initialMarking>
+    </place>
+    <place id="P5">
+      <graphics><position x="690.0" y="150.0"/></graphics>
+      <name><value>Peca_Furada</value></name>
+      <initialMarking><value>Default,0</value></initialMarking>
+    </place>
+
+    <transition id="T0">
+      <graphics><position x="165.0" y="150.0"/></graphics>
+      <name><value>Carregar</value></name>
+    </transition>
+    <transition id="T1">
+      <graphics><position x="375.0" y="150.0"/></graphics>
+      <name><value>Iniciar_Furo</value></name>
+    </transition>
+    <transition id="T2">
+      <graphics><position x="585.0" y="150.0"/></graphics>
+      <name><value>Concluir_Furo</value></name>
+    </transition>
+    <transition id="T3">
+      <graphics><position x="375.0" y="260.0"/></graphics>
+      <name><value>Descarregar</value></name>
+    </transition>
+
+    <!-- Carregar: Fila + Esteira_Livre -> Peca_Na_Esteira (inibido por Peca_Furada) -->
+    <arc id="A0" source="P0" target="T0"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+    <arc id="A1" source="P1" target="T0"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+    <arc id="A2" source="P5" target="T0"><inscription><value>Default,1</value></inscription><type value="inhibitor"/></arc>
+    <arc id="A3" source="T0" target="P2"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+
+    <!-- Iniciar_Furo: Peca_Na_Esteira + Furadeira_Livre -> Furando + Esteira_Livre -->
+    <arc id="A4" source="P2" target="T1"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+    <arc id="A5" source="P3" target="T1"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+    <arc id="A6" source="T1" target="P4"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+    <arc id="A7" source="T1" target="P1"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+
+    <!-- Concluir_Furo: Furando -> Peca_Furada + Furadeira_Livre -->
+    <arc id="A8" source="P4" target="T2"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+    <arc id="A9" source="T2" target="P5"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+    <arc id="A10" source="T2" target="P3"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+
+    <!-- Descarregar: Peca_Furada -> Fila_Pecas (ciclo, mantém a rede viva) -->
+    <arc id="A11" source="P5" target="T3"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+    <arc id="A12" source="T3" target="P0"><inscription><value>Default,1</value></inscription><type value="normal"/></arc>
+  </net>
+</pnml>
