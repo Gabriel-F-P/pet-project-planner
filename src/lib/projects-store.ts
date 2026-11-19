@@ -36,6 +36,7 @@ export type Project = {
 };
 
 const STORAGE_KEY = "petri-iec.projects.v1";
+const SEEDED_KEY = "petri-iec.example-seeded.v1";
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -69,12 +70,16 @@ function read(): Project[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      const seeded = [exampleProject()];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-      return seeded;
+    const list = raw ? (JSON.parse(raw) as Project[]) : [];
+    // o exemplo é inserido uma única vez por navegador, mesmo que já exista uma lista salva
+    if (!localStorage.getItem(SEEDED_KEY)) {
+      localStorage.setItem(SEEDED_KEY, "1");
+      if (!list.some((p) => p.id === "exemplo-furacao")) {
+        list.unshift(exampleProject());
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      }
     }
-    return JSON.parse(raw) as Project[];
+    return list;
   } catch {
     return [];
   }
