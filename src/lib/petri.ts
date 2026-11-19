@@ -525,7 +525,8 @@ export function generateST(params: ProjectParameters, programName = "PLC_PRG"): 
   );
   impl.push("", "(* 2) Disparo: uma vez por ciclo, conferindo se os tokens ainda estão disponíveis *)");
   M.transitions.forEach(({ t, index, flag }) => {
-    const recheck = t.inputs.length ? ` AND ${t.inputs.map((id) => cond(t, id)).join(" AND ")}` : "";
+    // reconfere entradas e arcos inibidores: transições anteriores do mesmo ciclo podem ter mudado a marcação
+    const recheck = t.inputs.length || t.inhibitors?.length ? ` AND ${enabling(t)}` : "";
     impl.push(`(* T${index} - ${t.name} *)`, `IF ${flag}${recheck} THEN`);
     t.inputs.forEach((id) =>
       impl.push(
@@ -693,7 +694,7 @@ export function generateArduino(params: ProjectParameters): GeneratedCode {
   );
   s.push("", "  // 2) Disparo: uma vez por ciclo, conferindo se os tokens ainda estão disponíveis", "  bool mudou = false;");
   M.transitions.forEach(({ t, index, flag }) => {
-    const recheck = t.inputs.length ? ` && ${t.inputs.map((id) => cond(t, id)).join(" && ")}` : "";
+    const recheck = t.inputs.length || t.inhibitors?.length ? ` && ${enabling(t)}` : "";
     s.push(`  // T${index} - ${t.name}`, `  if (${flag}${recheck}) {`);
     t.inputs.forEach((id) =>
       s.push(M.isBool(id) ? `    ${M.name(id)} = false;` : `    ${M.name(id)} -= ${weight(t.inputWeights, id)};`),
@@ -784,7 +785,7 @@ export function generatePython(params: ProjectParameters): GeneratedCode {
   );
   s.push("", "        # 2) Disparo: uma vez por ciclo, conferindo se os tokens ainda estão disponíveis", "        disparadas = []");
   M.transitions.forEach(({ t, index, flag }) => {
-    const recheck = t.inputs.length ? ` and ${t.inputs.map((id) => cond(t, id)).join(" and ")}` : "";
+    const recheck = t.inputs.length || t.inhibitors?.length ? ` and ${enabling(t)}` : "";
     s.push(`        # T${index} - ${t.name}`, `        if ${flag}${recheck}:`);
     t.inputs.forEach((id) =>
       s.push(M.isBool(id) ? `            ${ref(id)} = False` : `            ${ref(id)} -= ${weight(t.inputWeights, id)}`),
